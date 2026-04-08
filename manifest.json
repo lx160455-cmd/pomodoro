@@ -2,7 +2,7 @@
   "name": "番茄时钟",
   "short_name": "番茄",
   "description": "科幻风格番茄时钟 - 带统计和音效",
-  "start_url": "/pomodoro.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0a0a1a",
   "theme_color": "#00f0ff",
