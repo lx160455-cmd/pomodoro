@@ -1,6 +1,6 @@
 const CACHE_NAME = 'pomodoro-v2';
 const urlsToCache = [
-  '/pomodoro.html',
+  '/index.html',
   '/manifest.json'
 ];
 
