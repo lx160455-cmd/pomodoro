@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>番茄时钟</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍅</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #1a1a1a;
+            --bg-card: #252525;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --accent: #c4a77d;
+            --border: #333333;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 1.5rem 1rem;
+        }
+
+        /* Date Header */
+        .date-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .date-header .date-row {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .date-header .date-item {
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .date-header .date-item .label {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.25rem;
+        }
+
+        .date-header .date-item .value {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .date-header .weekday {
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-weight: 400;
+        }
+
+        /* Quote Section */
+        .quote-section {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .quote-section .quote-text {
+            font-family: 'Palatino', 'Book Antiqua', Georgia, serif;
+            font-size: 1rem;
+            font-style: italic;
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+        }
+
+        .quote-section .quote-author {
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 400;
+        }
+
+        /* Timer Section */
+        .timer-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .mode-tabs {
+            display: flex;
+            gap: 0.25rem;
+            background: #1a1a1a;
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .mode-tab {
+            flex: 1;
+            padding: 0.6rem 1rem;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 400;
+        }
+
+        .mode-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .mode-tab.active {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-weight: 500;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* Flip Clock */
+        .flip-clock {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .flip-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .flip-digits {
+            display: flex;
+            gap: 6px;
+        }
+
+        .flip-digit {
+            width: 42px;
+            height: 60px;
+            background: #000;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flip-digit .digit {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 300;
+            color: #fff;
+        }
+
+        .flip-digit.flipping .digit {
+            animation: flipChange 0.25s ease-out;
+        }
+
+        @keyframes flipChange {
+            0% { transform: scaleY(1); opacity: 1; }
+            50% { transform: scaleY(0); opacity: 0; }
+            51% { transform: scaleY(0); opacity: 0; }
+            100% { transform: scaleY(1); opacity: 1; }
+        }
+
+        .flip-unit .unit-label {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .flip-clock .colon {
+            font-size: 2.5rem;
+            font-weight: 200;
+            color: var(--text-primary);
+            margin-top: -15px;
+        }
+
+        /* Mode Label */
+        .timer-section .mode-label {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        /* Tag Input */
+        .tag-input-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .tag-input-section label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-row input[type="text"] {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .input-row input[type="text"]:focus {
+            border-color: var(--accent);
+        }
+
+        .input-row input[type="text"]::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .input-row select {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            cursor: pointer;
+            min-width: 100px;
+        }
+
+        /* Toggle Row */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+
+        .toggle-row .label {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 51px;
+            height: 31px;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--border);
+            border-radius: 31px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 27px;
+            width: 27px;
+            left: 2px;
+            bottom: 2px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--accent);
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 0.9rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #1a1a1a;
+            min-width: 140px;
+        }
+
+        .btn-primary:hover {
+            background: #b39568;
+            transform: scale(1.02);
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #333;
+        }
+
+        /* Stats Section */
+        .stats-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stats-header h2 {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.25rem;
+            background: var(--bg);
+            padding: 3px;
+            border-radius: 8px;
+        }
+
+        .view-toggle button {
+            padding: 0.35rem 0.7rem;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .view-toggle button.active {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1rem 0.5rem;
+            background: var(--bg);
+            border-radius: 12px;
+        }
+
+        .stat-card .value {
+            font-size: 1.75rem;
+            font-weight: 300;
+            color: var(--accent);
+        }
+
+        .stat-card .label {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .chart-container {
+            height: 100px;
+            position: relative;
+        }
+
+        .chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Recent Sessions */
+        .recent-sessions {
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .recent-sessions h3 {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .session-list {
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .session-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .session-list::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        .session-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+
+        .session-item:last-child {
+            border-bottom: none;
+        }
+
+        .session-item .name {
+            color: var(--text-primary);
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .session-item .tag {
+            color: var(--accent);
+            font-size: 0.7rem;
+        }
+
+        .session-item .time {
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+        }
+
+        /* Settings Button */
+        .settings-btn {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 50%;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .settings-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .settings-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Settings Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.75rem;
+            width: 90%;
+            max-width: 360px;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.show .modal {
+            transform: translateY(0);
+        }
+
+        .modal h2 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .setting-item {
+            margin-bottom: 1.25rem;
+        }
+
+        .setting-item label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .setting-item input[type="number"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+            padding: 0.8rem 1rem;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--accent);
+            color: #1a1a1a;
+            padding: 0.9rem 1.5rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 1001;
+            transition: transform 0.4s ease;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Keyboard Hint */
+        .keyboard-hint {
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+        }
+
+        .keyboard-hint kbd {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            background: var(--bg-card);
+            border-radius: 4px;
+            margin: 0 0.25rem;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem 0.75rem;
+            }
+
+            .flip-digit {
+                width: 32px;
+                height: 48px;
+            }
+
+            .flip-digit .digit {
+                font-size: 1.8rem;
+            }
+
+            .flip-clock .colon {
+                font-size: 2rem;
+            }
+
+            .input-row {
+                flex-direction: column;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .keyboard-hint {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="toast" id="toast">时间到！</div>
+
+    <button class="settings-btn" id="settingsBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+    </button>
+
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2>设置</h2>
+            <div class="setting-item">
+                <label>专注时长（分钟）</label>
+                <input type="number" id="workDuration" min="1" max="60" value="25">
+            </div>
+            <div class="setting-item">
+                <label>短休息时长（分钟）</label>
+                <input type="number" id="shortBreakDuration" min="1" max="30" value="5">
+            </div>
+            <div class="setting-item">
+                <label>长休息时长（分钟）</label>
+                <input type="number" id="longBreakDuration" min="1" max="60" value="15">
+            </div>
+            <div class="setting-item">
+                <label>长休息间隔（个番茄）</label>
+                <input type="number" id="longBreakInterval" min="1" max="10" value="4">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancelSettings">取消</button>
+                <button class="btn btn-primary" id="saveSettings">存储</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Date Header -->
+        <div class="date-header">
+            <div class="date-row">
+                <div class="date-item">
+                    <div class="label">公历</div>
+                    <div class="value" id="solarDate">2024年1月1日</div>
+                </div>
+                <div class="date-item">
+                    <div class="label">农历</div>
+                    <div class="value" id="lunarDate">腊月初一</div>
+                </div>
+            </div>
+            <div class="weekday" id="weekday">星期一</div>
+        </div>
+
+        <!-- Timer Section -->
+        <div class="timer-section">
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="work">专注</button>
+                <button class="mode-tab" data-mode="short">短休息</button>
+                <button class="mode-tab" data-mode="long">长休息</button>
+            </div>
+
+            <div class="flip-clock" id="flipClock">
+                <div class="flip-unit">
+                    <div class="flip-digits" id="minutesGroup"></div>
+                    <div class="unit-label">分钟</div>
+                </div>
+                <span class="colon">:</span>
+                <div class="flip-unit">
+                    <div class="flip-digits" id="secondsGroup"></div>
+                    <div class="unit-label">秒</div>
+                </div>
+            </div>
+
+            <div class="mode-label" id="modeLabel">专注中</div>
+
+            <div class="tag-input-section">
+                <label>专注内容</label>
+                <div class="input-row">
+                    <input type="text" id="tomatoName" placeholder="给番茄起个名字..." maxlength="30">
+                    <select id="tomatoTag">
+                        <option value="工作">工作</option>
+                        <option value="学习">学习</option>
+                        <option value="阅读">阅读</option>
+                        <option value="创作">创作</option>
+                        <option value="运动">运动</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="toggle-row">
+                <span class="label">秒针滴答声</span>
+                <label for="musicToggle" class="toggle-switch">
+                    <input type="checkbox" id="musicToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-secondary" id="resetBtn">重置</button>
+                <button class="btn btn-primary" id="startBtn">开始</button>
+            </div>
+        </div>
+
+        <!-- Quote Section -->
+        <div class="quote-section">
+            <div class="quote-text" id="quoteText">"The only way to do great work is to love what you do."</div>
+            <div class="quote-author" id="quoteAuthor">— Steve Jobs</div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-section">
+            <div class="stats-header">
+                <h2>数据统计</h2>
+                <div class="view-toggle">
+                    <button class="active" data-view="week">本周</button>
+                    <button data-view="day">今日</button>
+                </div>
+            </div>
+
+            <div class="stats-summary">
+                <div class="stat-card">
+                    <div class="value" id="todayCount">0</div>
+                    <div class="label">今日</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="weekCount">0</div>
+                    <div class="label">本周</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="totalCount">0</div>
+                    <div class="label">总计</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="chart"></canvas>
+            </div>
+
+            <div class="recent-sessions">
+                <h3>最近记录</h3>
+                <div class="session-list" id="sessionList"></div>
+            </div>
+        </div>
+
+        <div class="keyboard-hint">
+            <kbd>空格</kbd> 开始 / 暂停 &nbsp;&nbsp; <kbd>R</kbd> 重置
+        </div>
+    </div>
+
+    <script>
+        // ============ Quote System ============
+        const Quotes = [
+            { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+            { text: "Education is not the filling of a pail, but the lighting of a fire.", author: "William Butler Yeats" },
+            { text: "Live as if you were to die tomorrow. Learn as if you were to live forever.", author: "Mahatma Gandhi" },
+            { text: "The mind is not a vessel to be filled, but a fire to be kindled.", author: "Plutarch" },
+            { text: "Learning is not attained by chance, it must be sought for with ardor.", author: "Abigail Adams" },
+            { text: "The beautiful thing about learning is that no one can take it away from you.", author: "B.B. King" },
+            { text: "Knowledge is power.", author: "Francis Bacon" },
+            { text: "Tell me and I forget. Teach me and I remember. Involve me and I learn.", author: "Benjamin Franklin" },
+            { text: "The more that you read, the more things you will know.", author: "Dr. Seuss" },
+            { text: "Education is the passport to the future.", author: "Malcolm X" },
+            { text: "Learning never exhausts the mind.", author: "Leonardo da Vinci" },
+            { text: "The capacity for wonder is the seed of all knowledge.", author: "Rabindranath Tagore" },
+            { text: "Study without desire spoils the memory.", author: "Leonardo da Vinci" },
+            { text: "Anyone who stops learning is old.", author: "Hans Arthus" },
+            { text: "Learning is a treasure that will follow its owner everywhere.", author: "Chinese Proverb" },
+            { text: "The expert in anything was once a beginner.", author: "Helen Hayes" },
+            { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
+            { text: "Success is no accident. It is hard work.", author: "Pelé" },
+            { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+            { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+            { text: "Your time is limited, don't waste it living someone else's life.", author: "Steve Jobs" },
+            { text: "Stay hungry, stay foolish.", author: "Steve Jobs" },
+            { text: "The only impossible journey is the one you never begin.", author: "Tony Robbins" },
+            { text: "Act as if what you do makes a difference. It does.", author: "William James" },
+            { text: "What you get by achieving your goals is not as important as what you become.", author: "Zig Ziglar" },
+            { text: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb" },
+            { text: "Education is not preparation for life; education is life itself.", author: "John Dewey" },
+            { text: "The mind once enlightened cannot again become dark.", author: "Thomas Paine" },
+            { text: "Peak performance is the result of making the right choices every day.", author: "Robin Sharma" },
+            { text: "Small daily improvements are the key to staggering long-term results.", author: "Unknown" },
+            { text: "We are what we repeatedly do. Excellence is not an act, but a habit.", author: "Aristotle" }
+        ];
+
+        function getQuote() {
+            const today = new Date();
+            const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+            return Quotes[seed % Quotes.length];
+        }
+
+        // ============ Lunar Calendar ============
+        // 简化农历计算 - 2026年农历日期表
+        const LunarCalendar = {
+            // 2026年农历日期 (公历日期: 农历月份+日期)
+            dates: {
+                '1-1': '正月初一', '1-2': '正月初二', '1-3': '正月初三', '1-4': '正月初四', '1-5': '正月初五',
+                '1-6': '正月初六', '1-7': '正月初七', '1-8': '正月初八', '1-9': '正月初九', '1-10': '正月初十',
+                '1-11': '正月十一', '1-12': '正月十二', '1-13': '正月十三', '1-14': '正月十四', '1-15': '正月十五',
+                '1-16': '正月十六', '1-17': '正月十七', '1-18': '正月十八', '1-19': '正月十九', '1-20': '正月二十',
+                '1-21': '正月廿一', '1-22': '正月廿二', '1-23': '正月廿三', '1-24': '正月廿四', '1-25': '正月廿五',
+                '1-26': '正月廿六', '1-27': '正月廿七', '1-28': '正月廿八', '1-29': '正月廿九', '1-30': '正月三十',
+                '2-1': '二月初一', '2-2': '初二', '2-3': '初三', '2-4': '初四', '2-5': '初五',
+                '2-6': '初六', '2-7': '初七', '2-8': '初八', '2-9': '初九', '2-10': '初十',
+                '2-11': '十一', '2-12': '十二', '2-13': '十三', '2-14': '十四', '2-15': '十五',
+                '2-16': '十六', '2-17': '十七', '2-18': '十八', '2-19': '十九', '2-20': '二十',
+                '2-21': '廿一', '2-22': '廿二', '2-23': '廿三', '2-24': '廿四', '2-25': '廿五',
+                '2-26': '廿六', '2-27': '廿七', '2-28': '廿八', '2-29': '廿九', '2-30': '三十',
+                '3-1': '三月初一', '3-2': '初二', '3-3': '初三', '3-4': '初四', '3-5': '初五',
+                '3-6': '初六', '3-7': '初七', '3-8': '初八', '3-9': '初九', '3-10': '初十',
+                '3-11': '十一', '3-12': '十二', '3-13': '十三', '3-14': '十四', '3-15': '十五',
+                '3-16': '十六', '3-17': '十七', '3-18': '十八', '3-19': '十九', '3-20': '二十',
+                '3-21': '廿一', '3-22': '廿二', '3-23': '廿三', '3-24': '廿四', '3-25': '廿五',
+                '3-26': '廿六', '3-27': '廿七', '3-28': '廿八', '3-29': '廿九', '3-30': '三十',
+                '4-1': '二月十四', '4-2': '二月十五', '4-3': '二月十六', '4-4': '二月十七', '4-5': '二月十八',
+                '4-6': '二月十九', '4-7': '二月二十', '4-8': '二月廿一', '4-9': '二月廿二', '4-10': '二月廿三',
+                '4-11': '二月廿四', '4-12': '二月廿五', '4-13': '二月廿六', '4-14': '二月廿七', '4-15': '二月廿八',
+                '4-16': '二月廿九', '4-17': '二月三十', '4-18': '三月初一', '4-19': '三月初二', '4-20': '三月初三',
+                '4-21': '三月初四', '4-22': '三月初五', '4-23': '三月初六', '4-24': '三月初七', '4-25': '三月初八',
+                '4-26': '三月初九', '4-27': '三月初十', '4-28': '三月十一', '4-29': '三月十二', '4-30': '三月十三',
+                '5-1': '五月初一', '5-2': '初二', '5-3': '初三', '5-4': '初四', '5-5': '初五',
+                '5-6': '初六', '5-7': '初七', '5-8': '初八', '5-9': '初九', '5-10': '初十',
+                '5-11': '十一', '5-12': '十二', '5-13': '十三', '5-14': '十四', '5-15': '十五',
+                '5-16': '十六', '5-17': '十七', '5-18': '十八', '5-19': '十九', '5-20': '二十',
+                '5-21': '廿一', '5-22': '廿二', '5-23': '廿三', '5-24': '廿四', '5-25': '廿五',
+                '5-26': '廿六', '5-27': '廿七', '5-28': '廿八', '5-29': '廿九', '5-30': '三十',
+                '6-1': '六月初一', '6-2': '初二', '6-3': '初三', '6-4': '初四', '6-5': '初五',
+                '6-6': '初六', '6-7': '初七', '6-8': '初八', '6-9': '初九', '6-10': '初十',
+                '6-11': '十一', '6-12': '十二', '6-13': '十三', '6-14': '十四', '6-15': '十五',
+                '6-16': '十六', '6-17': '十七', '6-18': '十八', '6-19': '十九', '6-20': '二十',
+                '6-21': '廿一', '6-22': '廿二', '6-23': '廿三', '6-24': '廿四', '6-25': '廿五',
+                '6-26': '廿六', '6-27': '廿七', '6-28': '廿八', '6-29': '廿九', '6-30': '三十',
+                '7-1': '七月初一', '7-2': '初二', '7-3': '初三', '7-4': '初四', '7-5': '初五',
+                '7-6': '初六', '7-7': '初七', '7-8': '初八', '7-9': '初九', '7-10': '初十',
+                '7-11': '十一', '7-12': '十二', '7-13': '十三', '7-14': '十四', '7-15': '十五',
+                '7-16': '十六', '7-17': '十七', '7-18': '十八', '7-19': '十九', '7-20': '二十',
+                '7-21': '廿一', '7-22': '廿二', '7-23': '廿三', '7-24': '廿四', '7-25': '廿五',
+                '7-26': '廿六', '7-27': '廿七', '7-28': '廿八', '7-29': '廿九', '7-30': '三十',
+                '8-1': '八月初一', '8-2': '初二', '8-3': '初三', '8-4': '初四', '8-5': '初五',
+                '8-6': '初六', '8-7': '初七', '8-8': '初八', '8-9': '初九', '8-10': '初十',
+                '8-11': '十一', '8-12': '十二', '8-13': '十三', '8-14': '十四', '8-15': '十五',
+                '8-16': '十六', '8-17': '十七', '8-18': '十八', '8-19': '十九', '8-20': '二十',
+                '8-21': '廿一', '8-22': '廿二', '8-23': '廿三', '8-24': '廿四', '8-25': '廿五',
+                '8-26': '廿六', '8-27': '廿七', '8-28': '廿八', '8-29': '廿九', '8-30': '三十',
+                '9-1': '九月初一', '9-2': '初二', '9-3': '初三', '9-4': '初四', '9-5': '初五',
+                '9-6': '初六', '9-7': '初七', '9-8': '初八', '9-9': '初九', '9-10': '初十',
+                '9-11': '十一', '9-12': '十二', '9-13': '十三', '9-14': '十四', '9-15': '十五',
+                '9-16': '十六', '9-17': '十七', '9-18': '十八', '9-19': '十九', '9-20': '二十',
+                '9-21': '廿一', '9-22': '廿二', '9-23': '廿三', '9-24': '廿四', '9-25': '廿五',
+                '9-26': '廿六', '9-27': '廿七', '9-28': '廿八', '9-29': '廿九', '9-30': '三十',
+                '10-1': '十月初一', '10-2': '初二', '10-3': '初三', '10-4': '初四', '10-5': '初五',
+                '10-6': '初六', '10-7': '初七', '10-8': '初八', '10-9': '初九', '10-10': '初十',
+                '10-11': '十一', '10-12': '十二', '10-13': '十三', '10-14': '十四', '10-15': '十五',
+                '10-16': '十六', '10-17': '十七', '10-18': '十八', '10-19': '十九', '10-20': '二十',
+                '10-21': '廿一', '10-22': '廿二', '10-23': '廿三', '10-24': '廿四', '10-25': '廿五',
+                '10-26': '廿六', '10-27': '廿七', '10-28': '廿八', '10-29': '廿九', '10-30': '三十',
+                '11-1': '十一月初一', '11-2': '初二', '11-3': '初三', '11-4': '初四', '11-5': '初五',
+                '11-6': '初六', '11-7': '初七', '11-8': '初八', '11-9': '初九', '11-10': '初十',
+                '11-11': '十一', '11-12': '十二', '11-13': '十三', '11-14': '十四', '11-15': '十五',
+                '11-16': '十六', '11-17': '十七', '11-18': '十八', '11-19': '十九', '11-20': '二十',
+                '11-21': '廿一', '11-22': '廿二', '11-23': '廿三', '11-24': '廿四', '11-25': '廿五',
+                '11-26': '廿六', '11-27': '廿七', '11-28': '廿八', '11-29': '廿九', '11-30': '三十',
+                '12-1': '十二月初一', '12-2': '初二', '12-3': '初三', '12-4': '初四', '12-5': '初五',
+                '12-6': '初六', '12-7': '初七', '12-8': '初八', '12-9': '初九', '12-10': '初十',
+                '12-11': '十一', '12-12': '十二', '12-13': '十三', '12-14': '十四', '12-15': '十五',
+                '12-16': '十六', '12-17': '十七', '12-18': '十八', '12-19': '十九', '12-20': '二十',
+                '12-21': '廿一', '12-22': '廿二', '12-23': '廿三', '12-24': '廿四', '12-25': '廿五',
+                '12-26': '廿六', '12-27': '廿七', '12-28': '廿八', '12-29': '廿九', '12-30': '三十'
+            },
+
+            getLunarDate(Y, M, D) {
+                const key = `${M}-${D}`;
+                const dateStr = this.dates[key] || '未知';
+                return '丙午年' + dateStr;
+            }
+        };
+
+        // ============ Flip Clock ============
+        const FlipClock = {
+            init() {
+                const minutesGroup = document.getElementById('minutesGroup');
+                const secondsGroup = document.getElementById('secondsGroup');
+                minutesGroup.innerHTML = '';
+                secondsGroup.innerHTML = '';
+
+                // Create 2 digit elements for minutes
+                for (let i = 0; i < 2; i++) {
+                    const digit = document.createElement('div');
+                    digit.className = 'flip-digit';
+                    digit.innerHTML = '<div class="digit">0</div>';
+                    minutesGroup.appendChild(digit);
+                }
+
+                // Create 2 digit elements for seconds
+                for (let i = 0; i < 2; i++) {
+                    const digit = document.createElement('div');
+                    digit.className = 'flip-digit';
+                    digit.innerHTML = '<div class="digit">0</div>';
+                    secondsGroup.appendChild(digit);
+                }
+            },
+
+            setTime(minutes, seconds) {
+                const minStr = String(Math.floor(minutes)).padStart(2, '0');
+                const secStr = String(Math.floor(seconds)).padStart(2, '0');
+
+                const minutesGroup = document.getElementById('minutesGroup');
+                const secondsGroup = document.getElementById('secondsGroup');
+                const minuteDigits = minutesGroup.querySelectorAll('.flip-digit');
+                const secondDigits = secondsGroup.querySelectorAll('.flip-digit');
+
+                this.updateDigit(minuteDigits[0], minStr[0]);
+                this.updateDigit(minuteDigits[1], minStr[1]);
+                this.updateDigit(secondDigits[0], secStr[0]);
+                this.updateDigit(secondDigits[1], secStr[1]);
+            },
+
+            updateDigit(digit, newValue) {
+                if (!digit) return;
+                const digitEl = digit.querySelector('.digit');
+                const currentValue = digitEl.textContent;
+                if (currentValue === newValue) return;
+
+                digit.classList.remove('flipping');
+                void digit.offsetWidth;
+                digit.classList.add('flipping');
+                digitEl.textContent = newValue;
+
+                setTimeout(() => {
+                    digit.classList.remove('flipping');
+                }, 250);
+            }
+        };
+
+        // ============ Audio System ============
+        const AudioSystem = {
+            context: null,
+            isPlaying: false,
+            timerId: null,
+            lastTick: 0,
+            initPromise: null,
+
+            init() {
+                if (!this.context) {
+                    this.context = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.context.state === 'suspended') {
+                    this.initPromise = this.context.resume();
+                    return this.initPromise;
+                }
+                this.initPromise = Promise.resolve();
+                return this.initPromise;
+            },
+
+            playTick() {
+                if (!this.context || this.context.state !== 'running') return;
+
+                const now = this.context.currentTime;
+                const osc = this.context.createOscillator();
+                const gain = this.context.createGain();
+
+                osc.type = 'square';
+                osc.frequency.value = 1200;
+
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+                osc.connect(gain);
+                gain.connect(this.context.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.04);
+            },
+
+            playComplete() {
+                if (!this.context) this.init();
+
+                if (this.context.state === 'suspended') {
+                    this.context.resume();
+                }
+
+                const now = this.context.currentTime;
+
+                // 闹铃声 - 更响亮
+                const playAlarm = (startTime) => {
+                    [880, 1100, 1320].forEach((freq, i) => {
+                        const osc = this.context.createOscillator();
+                        const gain = this.context.createGain();
+                        osc.connect(gain);
+                        gain.connect(this.context.destination);
+                        osc.frequency.value = freq;
+                        osc.type = 'sine';
+                        gain.gain.setValueAtTime(0.4, startTime + i * 0.2);
+                        gain.gain.exponentialRampToValueAtTime(0.001, startTime + i * 0.2 + 0.4);
+                        osc.start(startTime + i * 0.2);
+                        osc.stop(startTime + i * 0.2 + 0.4);
+                    });
+                };
+
+                // 响3次
+                playAlarm(now);
+                playAlarm(now + 0.6);
+                playAlarm(now + 1.2);
+            },
+
+            startClock() {
+                this.init().then(() => {
+                    this.stopClock();
+                    this.isPlaying = true;
+                    this.lastTick = Date.now() - 1000;
+
+                    const tick = () => {
+                        if (!this.isPlaying) return;
+                        const now = Date.now();
+                        if (now - this.lastTick >= 1000) {
+                            this.lastTick = now;
+                            this.playTick();
+                        }
+                        this.timerId = setTimeout(tick, 100);
+                    };
+                    tick();
+                });
+            },
+
+            stopClock() {
+                this.isPlaying = false;
+                if (this.timerId) {
+                    clearTimeout(this.timerId);
+                    this.timerId = null;
+                }
+            }
+        };
+
+        // ============ Storage System ============
+        const Storage = {
+            KEY: 'pomodoro_data_v3',
+
+            load() {
+                try {
+                    return JSON.parse(localStorage.getItem(this.KEY)) || { sessions: [], settings: null };
+                } catch {
+                    return { sessions: [], settings: null };
+                }
+            },
+
+            save(data) {
+                localStorage.setItem(this.KEY, JSON.stringify(data));
+            },
+
+            addSession(session) {
+                const data = this.load();
+                data.sessions.push(session);
+                this.save(data);
+            },
+
+            getSettings() {
+                const data = this.load();
+                return data.settings || {
+                    workDuration: 25,
+                    shortBreakDuration: 5,
+                    longBreakDuration: 15,
+                    longBreakInterval: 4
+                };
+            },
+
+            saveSettings(settings) {
+                const data = this.load();
+                data.settings = settings;
+                this.save(data);
+            }
+        };
+
+        // ============ Stats System ============
+        const Stats = {
+            getTodaySessions() {
+                const data = Storage.load();
+                const today = new Date().toDateString();
+                return data.sessions.filter(s => new Date(s.completedAt).toDateString() === today);
+            },
+
+            getWeekSessions() {
+                const data = Storage.load();
+                const now = new Date();
+                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                return data.sessions.filter(s => new Date(s.completedAt) >= weekAgo);
+            },
+
+            getAllSessions() {
+                return Storage.load().sessions;
+            },
+
+            getTodayCount() { return this.getTodaySessions().length; },
+            getWeekCount() { return this.getWeekSessions().length; },
+            getTotalCount() { return this.getAllSessions().length; },
+
+            getWeekChartData() {
+                const days = ['日', '一', '二', '三', '四', '五', '六'];
+                const result = new Array(7).fill(0);
+                const now = new Date();
+
+                this.getWeekSessions().forEach(s => {
+                    const d = new Date(s.completedAt);
+                    const diffDays = Math.floor((now - d) / (24 * 60 * 60 * 1000));
+                    if (diffDays < 7) {
+                        result[6 - diffDays]++;
+                    }
+                });
+
+                return {
+                    labels: days.map((d, i) => {
+                        const date = new Date(now.getTime() - (6 - i) * 24 * 60 * 60 * 1000);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                    }),
+                    values: result
+                };
+            },
+
+            getDayChartData() {
+                const result = new Array(24).fill(0);
+                this.getTodaySessions().forEach(s => {
+                    const h = new Date(s.completedAt).getHours();
+                    result[h]++;
+                });
+                return {
+                    labels: Array.from({length: 24}, (_, i) => `${i}`),
+                    values: result
+                };
+            }
+        };
+
+        // ============ Chart System ============
+        const Chart = {
+            canvas: null,
+            ctx: null,
+            data: null,
+
+            init() {
+                this.canvas = document.getElementById('chart');
+                this.ctx = this.canvas.getContext('2d');
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            },
+
+            resize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = rect.width * 2;
+                this.canvas.height = rect.height * 2;
+                this.ctx.scale(2, 2);
+                if (this.data) this.draw(this.data);
+            },
+
+            draw(data) {
+                this.data = data;
+                const ctx = this.ctx;
+                const w = this.canvas.width / 2;
+                const h = this.canvas.height / 2;
+                const padding = { top: 5, right: 5, bottom: 15, left: 25 };
+                const chartW = w - padding.left - padding.right;
+                const chartH = h - padding.top - padding.bottom;
+
+                ctx.clearRect(0, 0, w, h);
+
+                const maxVal = Math.max(...data.values, 1);
+                const barW = chartW / data.labels.length * 0.5;
+                const gap = chartW / data.labels.length * 0.5;
+
+                // Grid
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.lineWidth = 0.5;
+                for (let i = 0; i <= 3; i++) {
+                    const y = padding.top + chartH * (1 - i / 3);
+                    ctx.beginPath();
+                    ctx.moveTo(padding.left, y);
+                    ctx.lineTo(w - padding.right, y);
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                    ctx.font = '9px Inter, sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(Math.round(maxVal * i / 3), padding.left - 3, y + 3);
+                }
+
+                // Bars
+                data.values.forEach((val, i) => {
+                    const x = padding.left + (chartW / data.labels.length) * i + gap / 2;
+                    const barH = (val / maxVal) * chartH;
+                    const y = padding.top + chartH - barH;
+
+                    ctx.fillStyle = '#c4a77d';
+                    ctx.fillRect(x, y, barW, barH);
+                });
+
+                // X labels
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.font = '8px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                const step = Math.ceil(data.labels.length / 10);
+                data.labels.forEach((label, i) => {
+                    if (i % step === 0) {
+                        ctx.fillText(label, padding.left + (chartW / data.labels.length) * i + barW / 2 + gap / 2, h - 5);
+                    }
+                });
+            }
+        };
+
+        // ============ Notification System ============
+        const NotificationSystem = {
+            async request() {
+                if ('Notification' in window && Notification.permission === 'default') {
+                    await Notification.requestPermission();
+                }
+            },
+
+            show(title, body) {
+                const toast = document.getElementById('toast');
+                toast.textContent = `${title} ${body}`;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 4000);
+
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification(title, { body, icon: '🍅' });
+                }
+            }
+        };
+
+        // ============ Timer System ============
+        const Timer = {
+            modes: {
+                work: { label: '专注中' },
+                short: { label: '短休息' },
+                long: { label: '长休息' }
+            },
+
+            currentMode: 'work',
+            timeLeft: 25 * 60,
+            isRunning: false,
+            internalTimer: null,
+            settings: Storage.getSettings(),
+
+            init() {
+                this.settings = Storage.getSettings();
+                this.timeLeft = this.settings.workDuration * 60;
+                this.updateDisplay();
+            },
+
+            updateDisplay() {
+                const minutes = Math.floor(this.timeLeft / 60);
+                const seconds = this.timeLeft % 60;
+                document.getElementById('modeLabel').textContent = this.modes[this.currentMode].label;
+                FlipClock.setTime(minutes, seconds);
+            },
+
+            getCurrentDuration() {
+                switch(this.currentMode) {
+                    case 'work': return this.settings.workDuration;
+                    case 'short': return this.settings.shortBreakDuration;
+                    case 'long': return this.settings.longBreakDuration;
+                }
+            },
+
+            start() {
+                if (this.isRunning) {
+                    this.pause();
+                    return;
+                }
+
+                this.isRunning = true;
+                document.getElementById('startBtn').textContent = '暂停';
+                NotificationSystem.request();
+
+                this.internalTimer = setInterval(() => {
+                    if (!this.isRunning) return;
+                    this.timeLeft--;
+                    this.updateDisplay();
+
+                    if (this.timeLeft <= 0) {
+                        clearInterval(this.internalTimer);
+                        this.complete();
+                    }
+                }, 1000);
+            },
+
+            pause() {
+                this.isRunning = false;
+                if (this.internalTimer) {
+                    clearInterval(this.internalTimer);
+                    this.internalTimer = null;
+                }
+                document.getElementById('startBtn').textContent = '开始';
+            },
+
+            reset() {
+                this.pause();
+                this.timeLeft = this.getCurrentDuration() * 60;
+                this.updateDisplay();
+            },
+
+            complete() {
+                this.pause();
+                AudioSystem.playComplete();
+
+                if (this.currentMode === 'work') {
+                    const name = document.getElementById('tomatoName').value || '未命名';
+                    const tag = document.getElementById('tomatoTag').value;
+
+                    Storage.addSession({
+                        name,
+                        tag,
+                        duration: this.settings.workDuration,
+                        completedAt: new Date().toISOString()
+                    });
+
+                    const completedCount = Stats.getWeekCount() + 1;
+                    const isLongBreak = completedCount % this.settings.longBreakInterval === 0;
+
+                    NotificationSystem.show('番茄完成', isLongBreak ? '休息15分钟' : '休息5分钟');
+                    this.switchMode(isLongBreak ? 'long' : 'short');
+                    UI.updateStats();
+                } else {
+                    NotificationSystem.show('休息结束', '继续专注');
+                    this.switchMode('work');
+                }
+            },
+
+            switchMode(mode) {
+                this.currentMode = mode;
+                this.timeLeft = this.getCurrentDuration() * 60;
+                this.updateDisplay();
+
+                document.querySelectorAll('.mode-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.mode === mode);
+                });
+            }
+        };
+
+        // ============ UI System ============
+        const UI = {
+            currentView: 'week',
+
+            init() {
+                // Date header
+                const now = new Date();
+                const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+
+                document.getElementById('solarDate').textContent =
+                    `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+                document.getElementById('weekday').textContent = weekdays[now.getDay()];
+
+                const lunar = LunarCalendar.getLunarDate(now.getFullYear(), now.getMonth() + 1, now.getDate());
+                document.getElementById('lunarDate').textContent = lunar;
+
+                // Quote
+                const quote = getQuote();
+                document.getElementById('quoteText').textContent = `"${quote.text}"`;
+                document.getElementById('quoteAuthor').textContent = `— ${quote.author}`;
+
+                // Mode tabs
+                document.querySelectorAll('.mode-tab').forEach(tab => {
+                    tab.addEventListener('click', () => Timer.switchMode(tab.dataset.mode));
+                });
+
+                // Controls
+                document.getElementById('startBtn').addEventListener('click', () => Timer.start());
+                document.getElementById('resetBtn').addEventListener('click', () => Timer.reset());
+
+                // Music toggle
+                document.getElementById('musicToggle').addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        AudioSystem.startClock();
+                    } else {
+                        AudioSystem.stopClock();
+                    }
+                });
+
+                // View toggle
+                document.querySelectorAll('.view-toggle button').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.currentView = btn.dataset.view;
+                        this.updateChart();
+                    });
+                });
+
+                // Settings
+                document.getElementById('settingsBtn').addEventListener('click', () => this.openSettings());
+                document.getElementById('cancelSettings').addEventListener('click', () => this.closeSettings());
+                document.getElementById('saveSettings').addEventListener('click', () => this.saveSettingsFromModal());
+                document.getElementById('settingsModal').addEventListener('click', (e) => {
+                    if (e.target.classList.contains('modal-overlay')) this.closeSettings();
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+                        e.preventDefault();
+                        Timer.start();
+                    }
+                    if (e.code === 'KeyR' && e.target.tagName !== 'INPUT') {
+                        Timer.reset();
+                    }
+                });
+
+                // Init flip clock and chart
+                FlipClock.init();
+                Chart.init();
+                this.updateStats();
+            },
+
+            openSettings() {
+                const settings = Storage.getSettings();
+                document.getElementById('workDuration').value = settings.workDuration;
+                document.getElementById('shortBreakDuration').value = settings.shortBreakDuration;
+                document.getElementById('longBreakDuration').value = settings.longBreakDuration;
+                document.getElementById('longBreakInterval').value = settings.longBreakInterval;
+                document.getElementById('settingsModal').classList.add('show');
+            },
+
+            closeSettings() {
+                document.getElementById('settingsModal').classList.remove('show');
+            },
+
+            saveSettingsFromModal() {
+                const settings = {
+                    workDuration: parseInt(document.getElementById('workDuration').value) || 25,
+                    shortBreakDuration: parseInt(document.getElementById('shortBreakDuration').value) || 5,
+                    longBreakDuration: parseInt(document.getElementById('longBreakDuration').value) || 15,
+                    longBreakInterval: parseInt(document.getElementById('longBreakInterval').value) || 4
+                };
+                Storage.saveSettings(settings);
+                Timer.settings = settings;
+                Timer.reset();
+                this.closeSettings();
+            },
+
+            updateStats() {
+                document.getElementById('todayCount').textContent = Stats.getTodayCount();
+                document.getElementById('weekCount').textContent = Stats.getWeekCount();
+                document.getElementById('totalCount').textContent = Stats.getTotalCount();
+                this.updateChart();
+                this.updateSessionList();
+            },
+
+            updateChart() {
+                const data = this.currentView === 'week' ? Stats.getWeekChartData() : Stats.getDayChartData();
+                Chart.draw(data);
+            },
+
+            updateSessionList() {
+                const sessions = Stats.getTodaySessions().slice(-10).reverse();
+                const list = document.getElementById('sessionList');
+
+                if (sessions.length === 0) {
+                    list.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 1rem;">暂无记录</div>';
+                    return;
+                }
+
+                list.innerHTML = sessions.map(s => {
+                    const time = new Date(s.completedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                    return `
+                        <div class="session-item">
+                            <span class="name">${s.name}</span>
+                            <span class="tag">${s.tag}</span>
+                            <span class="time">${time}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            Timer.init();
+            UI.init();
+            AudioSystem.init();
+        });
+
+        document.addEventListener('click', function initAudioOnFirstClick() {
+            AudioSystem.init();
+            document.removeEventListener('click', initAudioOnFirstClick);
+        });
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>
